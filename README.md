@@ -40,8 +40,10 @@ This Python script is designed to scrape a user's Twitter followers using Seleni
 
 --output_folder: Output folder to store the CSV file (required)
 
+--option: Specify either "followers" or "following" (required)
+
 ### Output
-The script will create a CSV file named TARGET_USERNAME_followers.csv in the specified output folder. The CSV file contains two columns: 'Name' and 'Username'.
+The script will create a CSV file named TARGET_USERNAME_followers.csv or TARGET_USERNAME_following.csv in the specified output folder. The CSV file contains two columns: 'Name' and 'Username'.
 
 ### Notes
 The script may take some time, especially during the first run, as it creates a WebDriver instance and navigates through the followers list.

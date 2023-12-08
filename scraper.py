@@ -16,7 +16,7 @@ import os
 driver = ''
 
 # Function to create the WebDriver instance
-def create_driver(username, cookie):
+def create_driver(username, cookie, option):
     global driver
 
     # Configure Chrome options, including a custom extension
@@ -33,11 +33,13 @@ def create_driver(username, cookie):
     driver.get('https://twitter.com/')
     driver.add_cookie({'name': 'auth_token', 'value': cookie, 'domain': '.twitter.com',
                        'secure': True, 'path': '/', })
-    driver.get(f"https://twitter.com/{username}/followers")
+    
+    driver.get(f"https://twitter.com/{username}/{option}")
+    
     
 
-# Function to scrape followers
-def scrape_followers():
+# Function to scrape followers or following
+def scrape_users(option):
     start_time = time.time()
     
     final_located = False
@@ -45,32 +47,32 @@ def scrape_followers():
         ['Name', 'Username']  # Translated variable names
     ]
 
-    # Get the number of followers
+    # Get the number of followers or following
     time.sleep(5)
-    follower_count = WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.XPATH, '//*[@id="profile-stat-followers-value"]')))
-    follower_count = follower_count.text
+    user_count = WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, f'//*[@id="profile-stat-{option}-value"]')))
+    user_count = user_count.text
 
     len_names = 0
     message = True
     count = 0
-    # Scroll down until the last follower is located
+    # Scroll down until the last user is located
     while not final_located:
        
         driver.execute_script("window.scrollBy(0, document.body.scrollHeight)")
 
         names = driver.find_elements(By.XPATH, '//div[@class="user-item-text"]')
-        # Keep track of how many followers remaining
+        # Keep track of how many users remaining
         new_len_names = len(names)
         if len_names != new_len_names:
-            print(f'{new_len_names}/{follower_count} followers loaded.')
+            print(f'{new_len_names}/{user_count} {option} loaded.')
             len_names = new_len_names
             count = 0
         else:
             message = True
            
         if message and count == 0:
-            print("Allowing the system some time to load the remaining followers.")
+            print(f"Allowing the system some time to load the remaining {option}.")
             message = False
             count = 1
 
@@ -84,7 +86,7 @@ def scrape_followers():
         try:
             element_final = WebDriverWait(driver, 0.1).until(
                 EC.visibility_of_element_located(
-                    (By.XPATH, '/html/body/div[4]/main/div/div[2]/div[3]/div[' + follower_count + ']/div[1]/a/div/span[1]'))
+                    (By.XPATH, f'//*[@id="{option}-list"]/div[{user_count}]/div[1]/a/div/span[1]'))
             )  
             final_located = True
         except TimeoutException:
@@ -97,15 +99,15 @@ def scrape_followers():
     print(f"Scrolling took {execution_time} seconds to execute.")
     return data
 
-# Function to save followers to a CSV file
-def save_followers(data, username, output_folder):
+# Function to save followers or following to a CSV file
+def save_users(data, username, output_folder, option):
     start_time1 = time.time()
 
-    # Get lists of follower names and usernames
+    # Get lists of user names and usernames
     names = driver.find_elements(By.XPATH, '//div[@class="user-item-text"]')
     usernames = driver.find_elements(By.XPATH, '//span[@class="tweet-header-handle"]')
 
-    # Append follower data to the existing data list
+    # Append user data to the existing data list
     for i in range(len(names)):
         data.append([names[i].text, usernames[i].text])
 
@@ -113,7 +115,7 @@ def save_followers(data, username, output_folder):
     os.makedirs(output_folder, exist_ok=True)
 
     # Save data to a CSV file within the specified output folder
-    csv_file_path = os.path.join(output_folder, f'{username}_followers.csv')
+    csv_file_path = os.path.join(output_folder, f'{username}_{option}.csv')
 
     with open(csv_file_path, 'w', newline='', encoding='utf-8') as csv_file:
         csv_writer = csv.writer(csv_file)
@@ -125,24 +127,25 @@ def save_followers(data, username, output_folder):
 
 if __name__ == "__main__":
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description='Scrape Twitter followers.')
+    parser = argparse.ArgumentParser(description='Scrape Twitter users.')
     parser.add_argument('--cookie', required=True, help='Twitter auth_token cookie value')
-    parser.add_argument('--username', required=True, help='Twitter username to scrape followers')
+    parser.add_argument('--username', required=True, help='Twitter username to scrape')
     parser.add_argument('--output_folder', required=True, help='Output folder to store the CSV file')
+    parser.add_argument('--option', required=True, choices=['followers', 'following'], help='Specify either "followers" or "following"')
 
     args = parser.parse_args()
 
     print("Creating the driver: It may take some time if it's the first time.")
-    create_driver(args.username, args.cookie)
+    create_driver(args.username, args.cookie, args.option)
     print("Driver created successfully.")
 
-    print("Scraping followers...")
-    data = scrape_followers()
-    print("Followers scraped successfully.")
+    print(f"Scraping {args.option}...")
+    data = scrape_users(args.option)
+    print(f"{args.option.capitalize()} scraped successfully.")
 
-    print("Saving followers to CSV...")
-    save_followers(data, args.username, args.output_folder)
-    print("Followers saved to CSV successfully.")
+    print(f"Saving {args.option} to CSV...")
+    save_users(data, args.username, args.output_folder, args.option)
+    print(f"{args.option.capitalize()} saved to CSV successfully.")
 
     # Close the WebDriver instance
     driver.quit()

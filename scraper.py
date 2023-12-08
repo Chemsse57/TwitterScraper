@@ -25,8 +25,9 @@ def create_driver(username, cookie):
     options.add_argument('--window-position=-32000,-32000')
     options.add_extension(r"Old-Twitter-Layout-2023.crx")
 
+    service = Service(ChromeDriverManager().install())
     # Create the WebDriver instance with the configured options
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    driver = webdriver.Chrome(service=service, options=options)
 
     # Navigate to Twitter and set the authentication cookie
     driver.get('https://twitter.com/')
